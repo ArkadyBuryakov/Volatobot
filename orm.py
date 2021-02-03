@@ -59,6 +59,10 @@ class Order(Base):
         return session.query(Order).all()
 
     @staticmethod
+    def get_by_status(status):
+        return session.query(Order).filter(Order.status == status).all()
+
+    @staticmethod
     def find(order_id: str):
         return session.query(Order).filter(Order.id == order_id).first()
 
@@ -82,7 +86,6 @@ class Robot(Base):
     strategy = relationship('Strategy', back_populates='robot')
     sell_order = relationship('Order', foreign_keys=[sell_order_id])
     buy_order = relationship('Order', foreign_keys=[buy_order_id])
-    pass
 
     @staticmethod
     def get_all():

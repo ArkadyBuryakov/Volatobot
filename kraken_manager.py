@@ -24,6 +24,22 @@ def extract_result(json_response):
         raise KrakenApiError(str(e))
 
 
+def extract_orders(raw_order_list):
+    result = {}
+
+    for order_id, order_info in raw_order_list.items():
+        order = {'id': order_id,
+                 'type': order_info['descr']['type'],
+                 'amount': float(order_info['vol']),
+                 'price': float(order_info['descr']['price']),
+                 'open_position': float(order_info['vol']) - float(order_info['vol_exec']),
+                 'closed_position': float(order_info['vol_exec']),
+                 'status': order_info['status']}
+        result[order_id] = order
+
+    return result
+
+
 def get_current_price(pairs: list):
     # Prepare a parameter with currency pairs list
     pair_list = ''
@@ -61,24 +77,40 @@ def get_open_orders():
         raise KrakenApiError(str(e))
 
     # Generate easy to use result
-    result = []
-
     try:
         raw_result = extract_result(response_result)
-        for order_id, order_info in raw_result['open'].items():
-            order = {'id': order_id,
-                     'type': order_info['descr']['type'],
-                     'amount': float(order_info['vol']),
-                     'price': float(order_info['descr']['price']),
-                     'open_position': float(order_info['vol']) - float(order_info['vol_exec']),
-                     'closed_position': float(order_info['vol_exec']),
-                     'status': order_info['status']}
-            result.append(order)
+        result = extract_orders(raw_result['open'])
 
     except Exception as e:
         raise KrakenApiError(str(e))
 
     # Finish
+    return result
+
+
+def query_orders(id_list):
+    order_txid = ''
+
+    for order_id in id_list[0: 50]:  # API allows maximum 50 id's
+        order_txid += order_id + ','
+    order_txid = order_txid[:-1]
+
+    data = {'txid': order_txid}
+
+    # Call Kraken API and get response
+    try:
+        response_result = k.query_private(method='QueryOrders', data=data)
+    except Exception as e:
+        raise KrakenApiError('Query orders: ' + str(e))
+
+    # Generate easy to use result
+    try:
+        raw_result = extract_result(response_result)
+        result = extract_orders(raw_result)
+
+    except Exception as e:
+        raise KrakenApiError('Extract orders: ' + str(e))
+
     return result
 
 
