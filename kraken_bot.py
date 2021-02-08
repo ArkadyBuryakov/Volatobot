@@ -1,13 +1,11 @@
-from kraken_manager import get_open_orders
 from kraken_manager import query_orders
 from kraken_manager import get_current_price
 from kraken_manager import post_order
 from kraken_manager import cancel_order
-from kraken_manager import KrakenApiError
+from orm import new_session
 from orm import Order
 from orm import Robot
 from orm import Strategy
-from orm import session
 from uuid import uuid4
 
 
@@ -17,11 +15,13 @@ class KrakenBotError(Exception):
 
 class Bot:
 
-    def __init__(self, strategy, current_price):
-        self.strategy = strategy
+    def __init__(self, strategy_id, current_price):
+        self.session = new_session()
+        self.strategy = Strategy.find(self.session, strategy_id)
         self.current_price = current_price
 
     def place_orders(self):
+        session = self.session
         robot = self.strategy.robot
         multiplicator = (1 + self.strategy.step / 100)
         orders = []
@@ -66,17 +66,14 @@ class Bot:
             orders.append(buy_order)
 
             # Save orders and link them to robot
-            sell_order.push()
-            buy_order.push()
+            sell_order.push(session)
+            buy_order.push(session)
 
             robot.sell_order = sell_order
             robot.buy_order = buy_order
             session.commit()
 
         except Exception as e:
-            # In case of errors, cancel orders
-            print(e)
-
             # Cancel all changes in session
             session.rollback()
 
@@ -86,10 +83,10 @@ class Bot:
                 order.status = 'cancel'
                 session.commit()
 
-            raise KrakenBotError(e)
+            raise KrakenBotError('place_orders: ' + str(e))
 
-    @staticmethod
-    def cancel_order(order):
+    def cancel_order(self, order):
+        session = self.session
         if order is not None:
             if order.status == 'open':
                 try:
@@ -97,9 +94,8 @@ class Bot:
                     order.status = 'cancel'
                     session.commit()
                 except Exception as e:
-                    print(e)
                     session.rollback()
-                    raise KrakenBotError(e)
+                    raise KrakenBotError('cancel_order: ' + str(e))
 
     def cancel_orders(self):
         # Check robot
@@ -112,49 +108,72 @@ class Bot:
             self.cancel_order(robot.sell_order)
             self.cancel_order(robot.buy_order)
         except Exception as e:
-            raise KrakenBotError(e)
+            raise KrakenBotError('cancel_orders: ' + str(e))
 
     def start_robot(self):
         # Check if current price is in strategy boundaries
         if self.strategy.bottom <= self.current_price <= self.strategy.ceiling:
-            # Create empty robot
-            robot = Robot(id=str(uuid4()), strategy=self.strategy, current_step_price=self.current_price)
-            robot.push()
+            session = self.session
+            try:
+                # Create empty robot
+                robot = Robot(id=str(uuid4()), strategy=self.strategy, current_step_price=self.current_price)
+                robot.push(session)
+                session.commit()
+            except Exception as e:
+                session.rollback()
+                raise KrakenBotError('start_robot: ' + str(e))
 
             try:
                 self.place_orders()
             except KrakenBotError as e:
                 # In case of error delete the robot
-                robot.delete()
-                print('error during orders posting')
+                robot.delete(session)
+                session.commit()
+                raise KrakenBotError('start_robot: ' + str(e))
 
     def stop_robot(self):
-        # Check if robot exists
-        if self.strategy.robot is not None:
-            self.cancel_orders()
-            self.strategy.robot.delete()
+        session = self.session
+        try:
+            # Check if robot exists
+            if self.strategy.robot is not None:
+                self.cancel_orders()
+                self.strategy.robot.delete(session)
+                session.commit()
+        except Exception as e:
+            session.rollback()
+            raise KrakenBotError('stop_robot: ' + str(e))
 
     def step_up(self):
-        robot = self.strategy.robot
-        multiplicator = 1 + self.strategy.step/100
-        if robot is not None:
-            if robot.current_step_price is None:
-                robot.current_step_price = self.current_price
-            self.cancel_orders()
-            robot.current_step_price = robot.current_step_price * multiplicator
-            session.commit()
-            self.place_orders()
+        session = self.session
+        try:
+            robot = self.strategy.robot
+            multiplicator = 1 + self.strategy.step/100
+            if robot is not None:
+                if robot.current_step_price is None:
+                    robot.current_step_price = self.current_price
+                self.cancel_orders()
+                robot.current_step_price = robot.current_step_price * multiplicator
+                session.commit()
+                self.place_orders()
+        except Exception as e:
+            session.rollback()
+            raise KrakenBotError('step_up: ' + str(e))
 
     def step_down(self):
-        robot = self.strategy.robot
-        multiplicator = 1 + self.strategy.step/100
-        if robot is not None:
-            if robot.current_step_price is None:
-                robot.current_step_price = self.current_price
-            self.cancel_orders()
-            robot.current_step_price = robot.current_step_price / multiplicator
-            session.commit()
-            self.place_orders()
+        session = self.session
+        try:
+            robot = self.strategy.robot
+            multiplicator = 1 + self.strategy.step/100
+            if robot is not None:
+                if robot.current_step_price is None:
+                    robot.current_step_price = self.current_price
+                self.cancel_orders()
+                robot.current_step_price = robot.current_step_price / multiplicator
+                session.commit()
+                self.place_orders()
+        except Exception as e:
+            session.rollback()
+            raise KrakenBotError('step_down: ' + str(e))
 
     def current_price_step(self):
         robot = self.strategy.robot
@@ -167,43 +186,53 @@ class Bot:
                 self.step_down()
 
     def run_robot(self):
-        if self.strategy:
-            if self.strategy.robot is not None:
-                robot = self.strategy.robot
+        try:
+            # Check if strategy is active
+            if self.strategy.active:
+                # Check that robot exists
+                if self.strategy.robot is not None:
+                    robot = self.strategy.robot
 
-                # Arguments to make step decision
-                buy_order_is_open = False
-                sell_order_is_open = False
+                    # Arguments to make step decision
+                    buy_order_is_open = False
+                    sell_order_is_open = False
 
-                if robot.buy_order is not None:
-                    if robot.buy_order.status == 'open':
-                        buy_order_is_open = True
+                    if robot.buy_order is not None:
+                        if robot.buy_order.status == 'open':
+                            buy_order_is_open = True
 
-                if robot.sell_order is not None:
-                    if robot.sell_order.status == 'open':
-                        sell_order_is_open = True
+                    if robot.sell_order is not None:
+                        if robot.sell_order.status == 'open':
+                            sell_order_is_open = True
 
-                # Make decision
-                if buy_order_is_open and sell_order_is_open:
-                    return
-                elif buy_order_is_open:
-                    self.step_up()
-                elif sell_order_is_open:
-                    self.step_down()
+                    # Make decision
+                    if buy_order_is_open and sell_order_is_open:
+                        return
+                    elif buy_order_is_open:
+                        self.step_up()
+                    elif sell_order_is_open:
+                        self.step_down()
+                    else:
+                        self.current_price_step()
+
                 else:
-                    self.current_price_step()
-
+                    # Start new robot if it doesn't exist
+                    self.start_robot()
             else:
-                self.start_robot()
-        else:
-            self.stop_robot()
+                # Stop robot if strategy is not active
+                self.stop_robot()
+        except Exception as e:
+            raise KrakenBotError('run_robot: ' + str(e))
+        finally:
+            self.session.close()
 
 
 def kraken_bot():
+    session = new_session()
     # noinspection PyBroadException
     try:
         # Get all strategies
-        strategies = Strategy.get_all()
+        strategies = Strategy.get_all(session)
 
         # Get current prices
         pairs = []
@@ -214,7 +243,7 @@ def kraken_bot():
         current_prices = get_current_price(pairs)
 
         # Update all open orders
-        orm_orders = Order.get_by_status('open')
+        orm_orders = Order.get_by_status(session, 'open')
         orders_id_list = []
         for orm_order in orm_orders:
             orders_id_list.append(orm_order.id)
@@ -226,12 +255,13 @@ def kraken_bot():
                 orm_order.status = kraken_order['status']
                 orm_order.open_position = kraken_order['open_position']
                 orm_order.closed_position = kraken_order['closed_position']
-                session.commit()
+        session.commit()
 
         # Call strategies
         for strategy in strategies:
-            bot = Bot(strategy, current_prices[strategy.pair_name])
+            bot = Bot(strategy.id, current_prices[strategy.pair_name])
             bot.run_robot()
     except Exception as e:
-        print(e)
-
+        print('kraken_bot: ' + str(e))
+    finally:
+        session.close()
