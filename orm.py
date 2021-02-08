@@ -5,7 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
 # Set a database connection
-engine = create_engine(db_settings)
+engine = create_engine(db_settings, pool_pre_ping=True, pool_recycle=3600)
 session = sessionmaker(bind=engine)()
 Base = declarative_base()
 
