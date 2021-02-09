@@ -1,6 +1,6 @@
 from settings import db_settings
 from sqlalchemy import create_engine
-from sqlalchemy import Column, String, Numeric, Boolean, ForeignKey
+from sqlalchemy import Column, String, Numeric, Boolean, ForeignKey, Integer, DateTime, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
@@ -104,3 +104,20 @@ class Robot(Base):
 
     def delete(self, session):
         session.delete(self)
+
+
+class Error(Base):
+    # Table
+    __tablename__ = 't_error_log'
+
+    id = Column(Integer, primary_key=True)
+    created = Column(DateTime)
+    message = Column(Text)
+
+    @staticmethod
+    def post(message):
+        session = new_session()
+        error = Error(message=message)
+        session.add(error)
+        session.commit()
+        session.close()

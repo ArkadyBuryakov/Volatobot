@@ -19,3 +19,5 @@ if debug:
 db_settings = getenv("db_settings")
 kraken_api_key = getenv("kraken_api_key")
 kraken_private_api_key = getenv("kraken_private_api_key")
+telegram_api_key = getenv("telegram_api_key")
+telegram_chat_id = getenv("telegram_chat_id")

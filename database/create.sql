@@ -32,3 +32,10 @@ CREATE TABLE t_robots (
     buy_order_id varchar REFERENCES t_orders (id)
 )
 ;
+
+CREATE TABLE t_error_log(
+    id serial PRIMARY KEY,
+    created timestamp WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    message varchar
+)
+;

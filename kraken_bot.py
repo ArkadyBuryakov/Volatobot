@@ -3,9 +3,11 @@ from kraken_manager import get_current_price
 from kraken_manager import post_order
 from kraken_manager import cancel_order
 from orm import new_session
+from orm import Error
 from orm import Order
 from orm import Robot
 from orm import Strategy
+from telegram_manager import send_telegram_message
 from uuid import uuid4
 
 
@@ -155,6 +157,11 @@ class Bot:
                 robot.current_step_price = robot.current_step_price * multiplicator
                 session.commit()
                 self.place_orders()
+
+            # Inform about step
+            send_telegram_message(f'Step up!\n'
+                                  f'Strategy: {self.strategy.name}\n'
+                                  f'New price: {robot.current_step_price}')
         except Exception as e:
             session.rollback()
             raise KrakenBotError('step_up: ' + str(e))
@@ -171,6 +178,11 @@ class Bot:
                 robot.current_step_price = robot.current_step_price / multiplicator
                 session.commit()
                 self.place_orders()
+
+            # Inform about step
+            send_telegram_message(f'Step down!\n'
+                                  f'Strategy: {self.strategy.name}\n'
+                                  f'New price: {robot.current_step_price}')
         except Exception as e:
             session.rollback()
             raise KrakenBotError('step_down: ' + str(e))
@@ -261,7 +273,18 @@ def kraken_bot():
         for strategy in strategies:
             bot = Bot(strategy.id, current_prices[strategy.pair_name])
             bot.run_robot()
+
     except Exception as e:
+        # Print error
         print('kraken_bot: ' + str(e))
+        # noinspection PyBroadException
+        try:
+            # Send error to DB log
+            Error.post('kraken_bot: ' + str(e))
+            # Send error notification
+            send_telegram_message('Error happened: kraken_bot: ' + str(e))
+        except Exception as e:
+            pass
+
     finally:
         session.close()
