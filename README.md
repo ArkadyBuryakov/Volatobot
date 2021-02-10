@@ -7,6 +7,28 @@ Here is a basic concept of how it works:
 #### The example of a working bot with 2.5% price step:
 ![The example of a working bot with 2.5% price step](docs/example_of_work.jpg)
 
+#### What settings for this strategy I can use?
+- `pair_name` - the trading pair name that Kraken accepts ('XBTUSDT' for BTC/USDT pair)
+- `step` - difference in % between current price and sell/buy prices
+- `bid` - amount of coins to sell
+- `bottom` - lowest price for trading, stop line for buying
+- `ceiling` - highest price for trading, stop line for selling
+
+Let's talk about how calculates prices and amount for orders.
+
+Sell order:
+```
+price = current_price * (1 + step/100)
+amount = bid
+```
+Buy order:
+```
+price = current_price / (1 + step/100)
+amount = bid * (1 + step/100)
+```
+As you can see, all generated income will be fixed in coins.
+If you want to fix your income in fiat - just change the source code to make your sell amount equal to bid.
+
 # How does it work?
 This bot uses following stack of technology:
 1. Postgres database to manipulate strategies settings and store the state of the robot
