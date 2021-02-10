@@ -1,5 +1,5 @@
 krakenex==2.1.0
-psycopg2==2.8.6
+psycopg2-binary==2.8.6
 python-dotenv==0.15.0
 python-telegram-bot==13.2
 requests==2.25.1
