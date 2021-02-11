@@ -4,4 +4,3 @@ tests
 venv
 
 .env
-Dockerfile
