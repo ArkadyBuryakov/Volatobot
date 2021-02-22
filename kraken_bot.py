@@ -259,7 +259,8 @@ def kraken_bot():
         orders_id_list = []
         for orm_order in orm_orders:
             orders_id_list.append(orm_order.id)
-        kraken_orders = query_orders(orders_id_list)
+        if len(orders_id_list) > 0:
+            kraken_orders = query_orders(orders_id_list)
 
         for orm_order in orm_orders:
             if orm_order.id in kraken_orders.keys():
