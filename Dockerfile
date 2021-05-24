@@ -14,7 +14,6 @@ COPY orm.py ./
 COPY kraken_manager.py ./
 COPY telegram_manager.py ./
 COPY kraken_bot.py ./
-COPY telegram_bot.py ./
 COPY main.py ./
 
 CMD [ "python3", "./main.py" ]

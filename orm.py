@@ -17,8 +17,10 @@ def new_session():
 
 # Create a class for settings stored in database
 class Strategy(Base):
+    # Table
     __tablename__ = "t_strategies"
 
+    # Columns
     id = Column(String, primary_key=True)
     name = Column(String)
     pair_name = Column(String)
@@ -110,6 +112,7 @@ class Error(Base):
     # Table
     __tablename__ = 't_error_log'
 
+    # Columns
     id = Column(Integer, primary_key=True)
     created = Column(DateTime)
     message = Column(Text)
