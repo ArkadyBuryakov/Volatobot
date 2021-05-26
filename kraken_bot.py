@@ -148,20 +148,33 @@ class Bot:
     def step_up(self):
         session = self.session
         try:
+            # Get robot
             robot = self.strategy.robot
+
+            # Check if robot exists
+            if robot is None:
+                raise KrakenBotError('robot does not exist')
+
+            # Calculate new price
+            if robot.current_step_price is None:
+                robot.current_step_price = self.current_price
             multiplicator = 1 + self.strategy.step/100
-            if robot is not None:
-                if robot.current_step_price is None:
-                    robot.current_step_price = self.current_price
+            new_price = robot.current_step_price * multiplicator
+
+            # Check if new price lies in given range
+            if new_price <= self.strategy.ceiling:
+
+                # Perform step up operation
                 self.cancel_orders()
-                robot.current_step_price = robot.current_step_price * multiplicator
+                robot.current_step_price = new_price
                 session.commit()
                 self.place_orders()
 
-            # Inform about step
-            send_telegram_message(f'Step up!\n'
-                                  f'Strategy: {self.strategy.name}\n'
-                                  f'New price: {robot.current_step_price}')
+                # Inform about step
+                send_telegram_message(f'Step up!\n'
+                                      f'Strategy: {self.strategy.name}\n'
+                                      f'New price: {robot.current_step_price}')
+
         except Exception as e:
             session.rollback()
             raise KrakenBotError('step_up: ' + str(e))
@@ -169,20 +182,32 @@ class Bot:
     def step_down(self):
         session = self.session
         try:
+            # Get robot
             robot = self.strategy.robot
+            # Check if robot exists
+            if robot is None:
+                raise KrakenBotError('robot does not exist')
+
+            # Calculate new price
+            if robot.current_step_price is None:
+                robot.current_step_price = self.current_price
             multiplicator = 1 + self.strategy.step/100
-            if robot is not None:
-                if robot.current_step_price is None:
-                    robot.current_step_price = self.current_price
+            new_price = robot.current_step_price / multiplicator
+
+            # Check if new price lies in given range
+            if new_price >= self.strategy.bottom:
+
+                # Perform step down operation
                 self.cancel_orders()
-                robot.current_step_price = robot.current_step_price / multiplicator
+                robot.current_step_price = new_price
                 session.commit()
                 self.place_orders()
 
-            # Inform about step
-            send_telegram_message(f'Step down!\n'
-                                  f'Strategy: {self.strategy.name}\n'
-                                  f'New price: {robot.current_step_price}')
+                # Inform about step
+                send_telegram_message(f'Step down!\n'
+                                      f'Strategy: {self.strategy.name}\n'
+                                      f'New price: {robot.current_step_price}')
+
         except Exception as e:
             session.rollback()
             raise KrakenBotError('step_down: ' + str(e))
