@@ -38,41 +38,52 @@ class Bot:
             buy_volume = self.strategy.bid*multiplicator
 
             # Post sell order
-            sell_order_result = post_order(pair=pair,
-                                           type='sell',
-                                           price=sell_price,
-                                           volume=sell_volume)
-            sell_order = Order(id=sell_order_result['id'],
-                               strategy_id=strategy_id,
-                               type='sell',
-                               amount=sell_volume,
-                               price=sell_price,
-                               open_position=sell_volume,
-                               closed_position=0,
-                               status='open')
-            orders.append(sell_order)
+            if self.strategy.bottom <= sell_price <= self.strategy.ceiling:
+                # Publish order
+                sell_order_result = post_order(pair=pair,
+                                               type='sell',
+                                               price=sell_price,
+                                               volume=sell_volume)
+
+                # Add to database
+                sell_order = Order(id=sell_order_result['id'],
+                                   strategy_id=strategy_id,
+                                   type='sell',
+                                   amount=sell_volume,
+                                   price=sell_price,
+                                   open_position=sell_volume,
+                                   closed_position=0,
+                                   status='open')
+                sell_order.push(session)
+                robot.sell_order = sell_order
+
+                # Add to orders list for error handling
+                orders.append(sell_order)
 
             # Post buy order
-            buy_order_result = post_order(pair=pair,
-                                          type='buy',
-                                          price=buy_price,
-                                          volume=buy_volume)
-            buy_order = Order(id=buy_order_result['id'],
-                              strategy_id=strategy_id,
-                              type='buy',
-                              amount=buy_volume,
-                              price=buy_price,
-                              open_position=buy_volume,
-                              closed_position=0,
-                              status='open')
-            orders.append(buy_order)
+            if self.strategy.bottom <= buy_price <= self.strategy.ceiling:
+                # Publish order
+                buy_order_result = post_order(pair=pair,
+                                              type='buy',
+                                              price=buy_price,
+                                              volume=buy_volume)
 
-            # Save orders and link them to robot
-            sell_order.push(session)
-            buy_order.push(session)
+                # Add to database
+                buy_order = Order(id=buy_order_result['id'],
+                                  strategy_id=strategy_id,
+                                  type='buy',
+                                  amount=buy_volume,
+                                  price=buy_price,
+                                  open_position=buy_volume,
+                                  closed_position=0,
+                                  status='open')
+                buy_order.push(session)
+                robot.buy_order = buy_order
 
-            robot.sell_order = sell_order
-            robot.buy_order = buy_order
+                # Add to orders list for error handling
+                orders.append(buy_order)
+
+            # Commit on success
             session.commit()
 
         except Exception as e:
