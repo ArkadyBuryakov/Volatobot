@@ -293,6 +293,7 @@ def kraken_bot():
         # Update all open orders
         orm_orders = Order.get_by_status(session, 'open')
         orders_id_list = []
+        kraken_orders = {}
         for orm_order in orm_orders:
             orders_id_list.append(orm_order.id)
         if len(orders_id_list) > 0:
