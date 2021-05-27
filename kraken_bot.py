@@ -123,26 +123,83 @@ class Bot:
         except Exception as e:
             raise KrakenBotError('cancel_orders: ' + str(e))
 
+    def execute_robot(self):
+        try:
+            # Check if robot exists:
+            if self.strategy.robot is not None:
+                robot = self.strategy.robot
+                # Arguments to make step decision
+                buy_order_is_open = False
+                sell_order_is_open = False
+
+                if robot.buy_order is not None:
+                    if robot.buy_order.status == 'open':
+                        buy_order_is_open = True
+
+                if robot.sell_order is not None:
+                    if robot.sell_order.status == 'open':
+                        sell_order_is_open = True
+
+                # Make decision
+                if buy_order_is_open and sell_order_is_open:
+                    return
+                elif buy_order_is_open:
+                    self.step_up()
+                elif sell_order_is_open:
+                    self.step_down()
+                else:
+                    self.current_price_step()
+
+            else:
+                # Raise an error if robot doesn't exists
+                raise KrakenBotError('no such robot!')
+        except Exception as e:
+            raise KrakenBotError('execute_robot: ' + str(e))
+
     def start_robot(self):
+        try:
+            # In case of inconsistent state: cancel open order that were on stopped robot
+            self.cancel_orders()
+            # Publish orders
+            self.place_orders()
+
+            # Update status
+            self.strategy.robot.status = 'active'
+            self.session.commit()
+
+        except Exception as e:
+            self.session.rollback()
+            raise KrakenBotError('start_robot: ' + str(e))
+
+    def create_robot(self):
         # Check if current price is in strategy boundaries
         if self.strategy.bottom <= self.current_price <= self.strategy.ceiling:
             session = self.session
             try:
                 # Create empty robot
-                robot = Robot(id=str(uuid4()), strategy=self.strategy, current_step_price=self.current_price)
+                robot = Robot(
+                    id=str(uuid4()),
+                    strategy=self.strategy,
+                    current_step_price=self.current_price,
+                    status='stopped'
+                )
                 robot.push(session)
                 session.commit()
             except Exception as e:
                 session.rollback()
-                raise KrakenBotError('start_robot: ' + str(e))
+                raise KrakenBotError('create_robot: ' + str(e))
 
-            try:
-                self.place_orders()
-            except KrakenBotError as e:
-                # In case of error delete the robot
-                robot.delete(session)
+    def delete_robot(self):
+        session = self.session
+        try:
+            # Check if robot exists
+            if self.strategy.robot is not None:
+                self.cancel_orders()
+                self.strategy.robot.delete(session)
                 session.commit()
-                raise KrakenBotError('start_robot: ' + str(e))
+        except Exception as e:
+            session.rollback()
+            raise KrakenBotError('delete_robot: ' + str(e))
 
     def stop_robot(self):
         session = self.session
@@ -150,7 +207,7 @@ class Bot:
             # Check if robot exists
             if self.strategy.robot is not None:
                 self.cancel_orders()
-                self.strategy.robot.delete(session)
+                self.strategy.robot.status = 'stopped'
                 session.commit()
         except Exception as e:
             session.rollback()
@@ -235,40 +292,26 @@ class Bot:
 
     def run_robot(self):
         try:
-            # Check if strategy is active
-            if self.strategy.active:
-                # Check that robot exists
-                if self.strategy.robot is not None:
-                    robot = self.strategy.robot
+            strategy_is_active = self.strategy.active
+            robot_exists = self.strategy.robot is not None
+            robot_status = self.strategy.robot.status if robot_exists else "Null"
 
-                    # Arguments to make step decision
-                    buy_order_is_open = False
-                    sell_order_is_open = False
+            # Create robot if it doesn't exists
+            if strategy_is_active and not robot_exists:
+                self.create_robot()
 
-                    if robot.buy_order is not None:
-                        if robot.buy_order.status == 'open':
-                            buy_order_is_open = True
-
-                    if robot.sell_order is not None:
-                        if robot.sell_order.status == 'open':
-                            sell_order_is_open = True
-
-                    # Make decision
-                    if buy_order_is_open and sell_order_is_open:
-                        return
-                    elif buy_order_is_open:
-                        self.step_up()
-                    elif sell_order_is_open:
-                        self.step_down()
-                    else:
-                        self.current_price_step()
-
-                else:
-                    # Start new robot if it doesn't exist
+            # Activate or execute robot if strategy is active and robot exists
+            if strategy_is_active and robot_exists:
+                if robot_status == 'stopped':
                     self.start_robot()
-            else:
-                # Stop robot if strategy is not active
-                self.stop_robot()
+                else:
+                    self.execute_robot()
+
+            # Deactivate robot if strategy is not active
+            if not strategy_is_active and robot_exists:
+                if robot_status != 'stopped':
+                    self.stop_robot()
+
         except Exception as e:
             raise KrakenBotError('run_robot: ' + str(e))
         finally:

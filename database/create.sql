@@ -29,7 +29,8 @@ CREATE TABLE t_robots (
     strategy_id varchar NOT NULL REFERENCES t_strategies (id),
     current_step_price numeric,
     sell_order_id varchar REFERENCES t_orders (id),
-    buy_order_id varchar REFERENCES t_orders (id)
+    buy_order_id varchar REFERENCES t_orders (id),
+    status varchar DEFAULT 'stopped'
 )
 ;
 

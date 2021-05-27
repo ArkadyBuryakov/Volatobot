@@ -87,6 +87,7 @@ class Robot(Base):
     current_step_price = Column(Numeric)
     sell_order_id = Column(String, ForeignKey('t_orders.id'))
     buy_order_id = Column(String, ForeignKey('t_orders.id'))
+    status = Column(String, default='stopped')
 
     # Related objects
     strategy = relationship('Strategy', back_populates='robot')
