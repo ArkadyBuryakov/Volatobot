@@ -91,3 +91,7 @@ The compose starts postgreSQL and bot script, so, take a note, `.env` like `.env
 ```bash
 docker-compose up
 ```
+
+Note:
+- we mount ports for postgres with host
+- we use named volume for postgres data
