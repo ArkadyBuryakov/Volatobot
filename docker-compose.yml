@@ -4,7 +4,7 @@
 # docker-compose down -v or (and) find mounted location via
 # docker volume list -> docker volume inspect.
 
-version: '3.3'
+version: '3.8'
 
 volumes:
   postgres_data:
