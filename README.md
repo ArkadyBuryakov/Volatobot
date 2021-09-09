@@ -77,10 +77,10 @@ To run container use the following command template:
 ```bash
 docker run -d --restart unless-stopped \
 --env DATABASE_URL=[your_database_url] \
---env kraken_api_key=[your_kraken_api_key] \
---env kraken_private_api_key=[your_kraken_private_api_key] \
---env telegram_api_key=[your_chat_bot_api_key] \
---env telegram_chat_id=[chat_id_in_your_telegram_bot_to_send_notifications] \
+--env KRAKEN_KEY=[your_kraken_api_key] \
+--env KRAKEN_PRIVATE_KEY=[your_kraken_private_api_key] \
+--env TELEGRAM_BOT_TOKEN=[your_chat_bot_api_key] \
+--env TELEGRAM_CHAT_ID=[chat_id_in_your_telegram_bot_to_send_notifications] \
 [docker_hub_user]/[docker_repo_name]:volatobot_v1
 ```
 

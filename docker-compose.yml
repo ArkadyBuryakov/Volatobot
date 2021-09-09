@@ -10,17 +10,20 @@ volumes:
   postgres_data:
 
 networks:
-  debug-net:
+  volatabot-test-net:
     driver: bridge
 
 x-app: &general-settings
   networks:
     - volatabot-test-net
+  env_file:
+    - .env
   restart: "no"
 
 services:
   bot:
     <<: *general-settings
+    build: .
     # command: tail -f /dev/null
     depends_on:
       - db

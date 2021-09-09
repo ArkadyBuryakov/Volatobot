@@ -24,7 +24,7 @@ DATABASE_URL = getenv("DATABASE_URL") or (
     getenv("DATABASE_PORT", '5432') + "/" +
     getenv("DATABASE_NAME", 'volatabot_dev')
 )
-kraken_api_key = getenv("kraken_api_key")
-kraken_private_api_key = getenv("kraken_private_api_key")
-telegram_api_key = getenv("telegram_api_key")
-telegram_chat_id = getenv("telegram_chat_id")
+KRAKEN_KEY = getenv("KRAKEN_KEY")
+KRAKEN_PRIVATE_KEY = getenv("KRAKEN_PRIVATE_KEY")
+TELEGRAM_BOT_TOKEN = getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = getenv("TELEGRAM_CHAT_ID")
