@@ -8,10 +8,10 @@ ENV PYTHONUNBUFFERED 1
 RUN apt-get update \
     && apt-get -y install gcc libpq-dev python3-dev netcat
 
-COPY requirements.txt .
+COPY src/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY ./src .
 
 ENTRYPOINT ["./entrypoint.sh"]
 CMD [ "python", "./main.py" ]
