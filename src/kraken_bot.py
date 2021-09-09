@@ -3,10 +3,7 @@ from kraken_manager import get_current_price
 from kraken_manager import post_order
 from kraken_manager import cancel_order
 from orm import new_session
-from orm import Error
-from orm import Order
-from orm import Robot
-from orm import Strategy
+from models import Strategy, Order, Robot, Error
 from telegram_manager import send_telegram_message
 from uuid import uuid4
 

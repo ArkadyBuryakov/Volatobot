@@ -1,6 +1,12 @@
 from kraken_bot import kraken_bot
 from telegram_manager import send_telegram_message
 from time import sleep
+from orm import Base, engine
+
+# the easiest way to create tables
+# but better to use https://alembic.sqlalchemy.org/
+# so, it store migration story as well
+Base.metadata.create_all(bind=engine)
 
 
 def release_kraken():
