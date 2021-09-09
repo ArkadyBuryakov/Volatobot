@@ -1,19 +1,17 @@
-FROM ubuntu
-
-RUN apt-get update
-RUN apt-get --assume-yes  install python3
-RUN apt-get --assume-yes  install python3-pip
+FROM python:3.9.6
 
 WORKDIR /usr/src/app
 
-COPY requirements.txt ./
-RUN pip3 install --no-cache-dir -r requirements.txt
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
-COPY settings.py ./
-COPY orm.py ./
-COPY kraken_manager.py ./
-COPY telegram_manager.py ./
-COPY kraken_bot.py ./
-COPY main.py ./
+RUN apk update \
+    && apk add postgresql-dev gcc python3-dev netcat
 
-CMD [ "python3", "./main.py" ]
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+ENTRYPOINT ["./entrypoint.sh"]
+CMD [ "python", "./main.py" ]

@@ -16,7 +16,14 @@ if debug:
     load_dotenv()
 
 # Get environment variables
-db_settings = getenv("db_settings")
+DATABASE_URL = getenv("DATABASE_URL") or (
+    getenv("DATABASE_ENGINE", 'postgres') + "://" +
+    getenv("DATABASE_USER", 'foo') + ":" +
+    getenv("DATABASE_PASSWORD", 'foo') + "@" +
+    getenv("DATABASE_HOST", 'localhost') + ":" +
+    getenv("DATABASE_PORT", '5432') + "/" +
+    getenv("DATABASE_NAME", 'volatabot_dev')
+)
 kraken_api_key = getenv("kraken_api_key")
 kraken_private_api_key = getenv("kraken_private_api_key")
 telegram_api_key = getenv("telegram_api_key")

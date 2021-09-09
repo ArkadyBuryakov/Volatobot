@@ -1,11 +1,11 @@
-from settings import db_settings
+from settings import DATABASE_URL
 from sqlalchemy import create_engine
 from sqlalchemy import Column, String, Numeric, Boolean, ForeignKey, Integer, DateTime, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
 # Set a database connection
-engine = create_engine(db_settings, pool_pre_ping=True, pool_recycle=3600)
+engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_recycle=3600)
 Base = declarative_base()
 
 
