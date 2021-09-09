@@ -95,4 +95,12 @@ docker-compose up
 Note:
 - we mount ports for postgres with host
 - we use named volume for postgres data
-- we mount volume for `/src` of bot scripts, so, this is only suitable for development stage (you may reload bot without build)
+- when developing bot, we suppose you dont want ot rebuild entire image, so you can add volume mounting:
+```yaml
+services:
+  bot:
+    ...
+    volumes:  # it is the develop setting
+      - ./src/:/usr/src/app/
+    ...
+```

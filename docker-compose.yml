@@ -24,8 +24,6 @@ services:
   bot:
     <<: *general-settings
     build: .
-    volumes:  # !develop setting
-      - ./src/:/usr/src/app/
     depends_on:
       - db
 
