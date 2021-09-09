@@ -4,7 +4,7 @@
 # docker-compose down -v or (and) find mounted location via
 # docker volume list -> docker volume inspect.
 
-version: '3.8'
+version: '3.3'
 
 volumes:
   postgres_data:
@@ -18,6 +18,11 @@ x-app: &general-settings
     - volatabot-test-net
   env_file:
     - .env
+  logging:
+    driver: "json-file"
+    options:
+      max-file: "3"
+      max-size: "10m"
   restart: "no"
 
 services:
