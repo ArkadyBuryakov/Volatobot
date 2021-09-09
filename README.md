@@ -95,3 +95,4 @@ docker-compose up
 Note:
 - we mount ports for postgres with host
 - we use named volume for postgres data
+- we mount volume for `/src` of bot scripts, so, this is only suitable for development stage (you may reload bot without build)

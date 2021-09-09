@@ -24,7 +24,8 @@ services:
   bot:
     <<: *general-settings
     build: .
-    # command: tail -f /dev/null
+    volumes:  # !develop setting
+      - ./src/:/usr/src/app/
     depends_on:
       - db
 
