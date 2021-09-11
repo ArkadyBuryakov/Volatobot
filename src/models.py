@@ -1,6 +1,9 @@
 # Create classes stored in database
 # with sqlalchemy meta
-from sqlalchemy import Column, String, Numeric, Boolean, ForeignKey, Integer, DateTime, Text
+from sqlalchemy import (
+    Column, String, Numeric, Boolean, ForeignKey, Integer, DateTime, Text,
+    Float
+)
 from sqlalchemy.orm import relationship
 
 from orm import Base, new_session
@@ -16,7 +19,7 @@ class Strategy(Base):
     pair_name = Column(String)
     coin = Column(String)
     stable = Column(String)
-    step = Column(String)
+    step = Column(Float)
     bid = Column(Numeric)
     bottom = Column(Numeric)
     ceiling = Column(Numeric)
