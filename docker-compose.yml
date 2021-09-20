@@ -10,12 +10,12 @@ volumes:
   postgres_data:
 
 networks:
-  volatabot-test-net:
+  volatobot-test-net:
     driver: bridge
 
 x-app: &general-settings
   networks:
-    - volatabot-test-net
+    - volatobot-test-net
   env_file:
     - .env
   logging:
