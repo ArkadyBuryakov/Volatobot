@@ -1,6 +1,7 @@
 import logging
+import time
 
-from kraken_manager import query_orders
+from kraken_manager import query_orders, KrakenApiTemporaryLockoutException
 from kraken_manager import get_current_price
 from kraken_manager import post_order
 from kraken_manager import cancel_order
@@ -356,6 +357,16 @@ def kraken_bot():
         for strategy in strategies:
             bot = Bot(strategy.id, current_prices[strategy.pair_name])
             bot.run_robot()
+
+    except KrakenApiTemporaryLockoutException as e:
+        logger.error(
+            f'Error happened: #kraken_bot: {e}. Thus, Bot goes to sleep for {KrakenApiTemporaryLockoutException.DELAY}'
+        )
+        try:  # todo: this logic should be in logging!
+            Error.post('kraken_bot: ' + str(e))
+        except Exception as e:
+            pass
+        time.sleep(KrakenApiTemporaryLockoutException.DELAY)
 
     except Exception as e:  # todo: specify some exact errors with except SpecialKrakenException
         logger.exception(f'Error happened: #kraken_bot: {e}')

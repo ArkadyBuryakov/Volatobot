@@ -7,8 +7,23 @@ k.key = KRAKEN_KEY
 k.secret = KRAKEN_PRIVATE_KEY
 
 
-class KrakenApiError(Exception):
+class KrakenApiException(Exception):
     pass
+
+
+class KrakenApiTemporaryLockoutException(Exception):
+    # via https://support.kraken.com/hc/en-us/articles/360001491786-API-error-messages
+    DELAY = 15 * 60
+    pass
+
+
+def raise_appropriate_kraken_api_exception(error: str):  # todo: maybe it can be better
+    """Find specified error, if no: raise KrakenApiException finally."""
+
+    if error.startswith('EGeneral:Temporary lockout'):
+        raise KrakenApiTemporaryLockoutException(error)
+
+    raise KrakenApiException(error)
 
 
 def extract_result(json_response):
@@ -17,11 +32,12 @@ def extract_result(json_response):
             if json_response['result']:
                 return json_response['result']
             else:
-                raise KrakenApiError('empty result')
+                raise KrakenApiException('empty result')
         else:
-            raise KrakenApiError(json_response['error'])
+            raise_appropriate_kraken_api_exception(json_response['error'])
+
     except Exception as e:
-        raise KrakenApiError('extract_result: ' + str(e))
+        raise KrakenApiException('extract_result: ' + str(e))
 
 
 def extract_orders(raw_order_list):
@@ -51,7 +67,7 @@ def get_current_price(pairs: list):
     try:
         response_result = k.query_public(method='Ticker', data={'pair': pair_list})
     except Exception as e:
-        raise KrakenApiError('get_current_price: ' + str(e))
+        raise KrakenApiException('get_current_price: ' + str(e))
 
     # Generate easy to use result
     result = {}
@@ -63,7 +79,7 @@ def get_current_price(pairs: list):
             result[pair_name] = float(price_info['c'][0])
 
     except Exception as e:
-        raise KrakenApiError('get_current_price: ' + str(e))
+        raise KrakenApiException('get_current_price: ' + str(e))
 
     # Finish
     return result
@@ -74,7 +90,7 @@ def get_open_orders():
     try:
         response_result = k.query_private(method='OpenOrders')
     except Exception as e:
-        raise KrakenApiError('get_open_orders: ' + str(e))
+        raise KrakenApiException('get_open_orders: ' + str(e))
 
     # Generate easy to use result
     try:
@@ -82,7 +98,7 @@ def get_open_orders():
         result = extract_orders(raw_result['open'])
 
     except Exception as e:
-        raise KrakenApiError('get_open_orders: ' + str(e))
+        raise KrakenApiException('get_open_orders: ' + str(e))
 
     # Finish
     return result
@@ -101,7 +117,7 @@ def query_orders(id_list):
     try:
         response_result = k.query_private(method='QueryOrders', data=data)
     except Exception as e:
-        raise KrakenApiError('query_orders: ' + str(e))
+        raise KrakenApiException('query_orders: ' + str(e))
 
     # Generate easy to use result
     try:
@@ -109,7 +125,7 @@ def query_orders(id_list):
         result = extract_orders(raw_result)
 
     except Exception as e:
-        raise KrakenApiError('query_orders: ' + str(e))
+        raise KrakenApiException('query_orders: ' + str(e))
 
     return result
 
@@ -126,7 +142,7 @@ def post_order(pair, type, price, volume, order_type="limit"):
     try:
         response_result = k.query_private(method='AddOrder', data=data)
     except Exception as e:
-        raise KrakenApiError('post_order: ' + str(e))
+        raise KrakenApiException('post_order: ' + str(e))
 
     # Generate easy to use result
     result = {}
@@ -136,7 +152,7 @@ def post_order(pair, type, price, volume, order_type="limit"):
         result['id'] = raw_result['txid'][0]
         result['descr'] = raw_result['descr']['order']
     except Exception as e:
-        raise KrakenApiError('post_order: ' + str(e))
+        raise KrakenApiException('post_order: ' + str(e))
 
     # Finish
     return result
@@ -150,7 +166,7 @@ def cancel_order(id):
     try:
         response_result = k.query_private(method='CancelOrder', data=data)
     except Exception as e:
-        raise KrakenApiError('cancel_order: ' + str(e))
+        raise KrakenApiException('cancel_order: ' + str(e))
 
     # Generate easy to use result
     result = {}
@@ -159,7 +175,7 @@ def cancel_order(id):
         raw_result = extract_result(response_result)
         result['count'] = raw_result['count']
     except Exception as e:
-        raise KrakenApiError('cancel_order: ' + str(e))
+        raise KrakenApiException('cancel_order: ' + str(e))
 
     # Finish
     return result
