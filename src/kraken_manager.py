@@ -1,4 +1,6 @@
+from typing import List
 import krakenex
+
 from settings import KRAKEN_KEY, KRAKEN_PRIVATE_KEY
 
 # Instantiate an instance of kraken api
@@ -17,11 +19,12 @@ class KrakenApiTemporaryLockoutException(Exception):
     pass
 
 
-def raise_appropriate_kraken_api_exception(error: str):  # todo: maybe it can be better
+def raise_appropriate_kraken_api_exception(errors: List[str]):  # todo: maybe it can be better
     """Find specified error, if no: raise KrakenApiException finally."""
 
-    if error.startswith('EGeneral:Temporary lockout'):
-        raise KrakenApiTemporaryLockoutException(error)
+    for error in errors:  # todo: not sure if this is good solution
+        if error.startswith('EGeneral:Temporary lockout'):
+            raise KrakenApiTemporaryLockoutException(error)
 
     raise KrakenApiException(error)
 
