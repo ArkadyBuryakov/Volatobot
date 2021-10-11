@@ -1,10 +1,10 @@
 import krakenex
-from settings import kraken_api_key, kraken_private_api_key
+from settings import KRAKEN_KEY, KRAKEN_PRIVATE_KEY
 
 # Instantiate an instance of kraken api
 k = krakenex.API()
-k.key = kraken_api_key
-k.secret = kraken_private_api_key
+k.key = KRAKEN_KEY
+k.secret = KRAKEN_PRIVATE_KEY
 
 
 class KrakenApiError(Exception):

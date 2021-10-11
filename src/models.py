@@ -1,21 +1,13 @@
-from settings import db_settings
-from sqlalchemy import create_engine
-from sqlalchemy import Column, String, Numeric, Boolean, ForeignKey, Integer, DateTime, Text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+# Create classes stored in database
+# with sqlalchemy meta
+from sqlalchemy import (
+    Column, String, Numeric, Boolean, ForeignKey, Integer, DateTime, Text,
+)
+from sqlalchemy.orm import relationship
 
-# Set a database connection
-engine = create_engine(db_settings, pool_pre_ping=True, pool_recycle=3600)
-Base = declarative_base()
-
-
-# It's easier to control session at orchestrator side to control it's lifecycle and avoid using same session
-# in different threads. All commits and rollbacks should be managed on orchestrator side as well.
-def new_session():
-    return sessionmaker(bind=engine)()
+from orm import Base, new_session
 
 
-# Create a class for settings stored in database
 class Strategy(Base):
     # Table
     __tablename__ = "t_strategies"
@@ -26,7 +18,7 @@ class Strategy(Base):
     pair_name = Column(String)
     coin = Column(String)
     stable = Column(String)
-    step = Column(String)
+    step = Column(Numeric)
     bid = Column(Numeric)
     bottom = Column(Numeric)
     ceiling = Column(Numeric)

@@ -1,0 +1,41 @@
+# We load env from .env.
+# For postgresql we use named volume,
+# so you always can easily prune via
+# docker-compose down -v or (and) find mounted location via
+# docker volume list -> docker volume inspect.
+
+version: '3.8'
+
+volumes:
+  postgres_data:
+
+networks:
+  volatobot-test-net:
+    driver: bridge
+
+x-app: &general-settings
+  networks:
+    - volatobot-test-net
+  env_file:
+    - .env
+  logging:
+    driver: "json-file"
+    options:
+      max-file: "3"
+      max-size: "10m"
+  restart: "no"
+
+services:
+  bot:
+    <<: *general-settings
+    build: .
+    depends_on:
+      - db
+
+  db:
+    <<: *general-settings
+    image: postgres:13.0
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - 5432:5432

@@ -1,14 +1,16 @@
+import logging
+
 from kraken_manager import query_orders
 from kraken_manager import get_current_price
 from kraken_manager import post_order
 from kraken_manager import cancel_order
 from orm import new_session
-from orm import Error
-from orm import Order
-from orm import Robot
-from orm import Strategy
-from telegram_manager import send_telegram_message
+from models import Strategy, Order, Robot, Error
+from utils.telegram import send_telegram_message
 from uuid import uuid4
+
+
+logger = logging.getLogger(__name__)
 
 
 class KrakenBotError(Exception):
@@ -355,15 +357,11 @@ def kraken_bot():
             bot = Bot(strategy.id, current_prices[strategy.pair_name])
             bot.run_robot()
 
-    except Exception as e:
-        # Print error
-        print('kraken_bot: ' + str(e))
+    except Exception as e:  # todo: specify some exact errors with except SpecialKrakenException
+        logger.exception(f'Error happened: #kraken_bot: {e}')
         # noinspection PyBroadException
         try:
-            # Send error to DB log
             Error.post('kraken_bot: ' + str(e))
-            # Send error notification
-            send_telegram_message('Error happened: kraken_bot: ' + str(e))
         except Exception as e:
             pass
 
