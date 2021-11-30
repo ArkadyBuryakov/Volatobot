@@ -65,8 +65,8 @@ python main.py
 ```
 
 ## Run docker container
-You can build your own docker container.
-Just run following commands from root repo folder:
+You can build your own docker container with already running db.
+Just run the following commands from root repo folder:
 ```bash
 docker build -f Dockerfile -t [docker_hub_user]/[repo_name]:volatobot_v1 .
 docker push [docker_hub_user]/[docker_repo_name]:volatobot_v1
@@ -76,10 +76,31 @@ To run container use the following command template:
 
 ```bash
 docker run -d --restart unless-stopped \
---env db_settings=[your_database_url] \
---env kraken_api_key=[your_kraken_api_key] \
---env kraken_private_api_key=[your_kraken_private_api_key] \
---env telegram_api_key=[your_chat_bot_api_key] \
---env telegram_chat_id=[chat_id_in_your_telegram_bot_to_send_notifications] \
+--env DATABASE_URL=[your_database_url] \
+--env KRAKEN_KEY=[your_kraken_api_key] \
+--env KRAKEN_PRIVATE_KEY=[your_kraken_private_api_key] \
+--env TELEGRAM_BOT_TOKEN=[your_chat_bot_api_key] \
+--env TELEGRAM_CHAT_ID=[chat_id_in_your_telegram_bot_to_send_notifications] \
 [docker_hub_user]/[docker_repo_name]:volatobot_v1
+```
+
+## Run Docker Compose
+We prepared a compose file to boot up the bot and a database with 1 click.
+The compose starts postgreSQL and bot script, so, take a note, `.env` like `.env_example` should be presented in the project dir.
+
+```bash
+docker-compose up
+```
+
+Note:
+- we mount ports for postgres with host
+- we use named volume for postgres data
+- when developing bot, we suppose you dont want ot rebuild entire image, so you can add volume mounting:
+```yaml
+services:
+  bot:
+    ...
+    volumes:  # it is the develop setting
+      - ./src/:/usr/src/app/
+    ...
 ```
