@@ -1,14 +1,16 @@
+import logging
+
 from kraken_manager import query_orders
 from kraken_manager import get_current_price
 from kraken_manager import post_order
 from kraken_manager import cancel_order
 from orm import new_session
-from orm import Error
-from orm import Order
-from orm import Robot
-from orm import Strategy
-from telegram_manager import send_telegram_message
+from models import Strategy, Order, Robot, Error
+from utils.telegram import send_telegram_message
 from uuid import uuid4
+
+
+logger = logging.getLogger(__name__)
 
 
 class KrakenBotError(Exception):
@@ -38,7 +40,13 @@ class Bot:
             buy_volume = self.strategy.bid*multiplicator
 
             # Post sell order
-            if self.strategy.bottom <= sell_price <= self.strategy.ceiling:
+            if not self.strategy.bottom <= sell_price <= self.strategy.ceiling:
+                send_telegram_message(
+                    f'Sell price for a new order is not in a strategy corridor.\n'
+                    f'Strategy: {self.strategy.name} with [{self.strategy.bottom}, {self.strategy.ceiling}]\n'
+                    f'Sell price for a new order: {sell_price}'
+                )
+            else:
                 # Publish order
                 sell_order_result = post_order(pair=pair,
                                                type='sell',
@@ -61,7 +69,13 @@ class Bot:
                 orders.append(sell_order)
 
             # Post buy order
-            if self.strategy.bottom <= buy_price <= self.strategy.ceiling:
+            if not self.strategy.bottom <= buy_price <= self.strategy.ceiling:
+                send_telegram_message(
+                    f'Buy price for a new order is not in a strategy corridor.\n'
+                    f'Strategy: {self.strategy.name} with [{self.strategy.bottom}, {self.strategy.ceiling}]\n'
+                    f'Buy price for a new order: {buy_price}'
+                )
+            else:
                 # Publish order
                 buy_order_result = post_order(pair=pair,
                                               type='buy',
@@ -230,18 +244,25 @@ class Bot:
             new_price = robot.current_step_price * multiplicator
 
             # Check if new price lies in given range
-            if new_price <= self.strategy.ceiling:
+            if not new_price <= self.strategy.ceiling:
+                send_telegram_message(
+                    f'New price <= strategy ceiling, pass it...\n'
+                    f'Strategy: {self.strategy.name}\n'
+                    f'New price: {new_price}'
+                )
+                return
 
-                # Perform step up operation
-                self.cancel_orders()
-                robot.current_step_price = new_price
-                session.commit()
-                self.place_orders()
+            # Perform step up operation
+            self.cancel_orders()
+            robot.current_step_price = new_price
+            session.commit()
+            self.place_orders()
 
-                # Inform about step
-                send_telegram_message(f'Step up!\n'
-                                      f'Strategy: {self.strategy.name}\n'
-                                      f'New price: {robot.current_step_price}')
+            # Inform about step
+            send_telegram_message(f'Step up!\n'
+                                  f'Strategy: {self.strategy.name}\n'
+                                  f'New price: {robot.current_step_price}')
+
 
         except Exception as e:
             session.rollback()
@@ -263,18 +284,27 @@ class Bot:
             new_price = robot.current_step_price / multiplicator
 
             # Check if new price lies in given range
-            if new_price >= self.strategy.bottom:
+            if not new_price >= self.strategy.bottom:
+                send_telegram_message(
+                    f'New price >= strategy bottom, pass it...\n'
+                    f'Strategy: {self.strategy.name}\n'
+                    f'New price: {new_price}'
+                )
+                return
 
-                # Perform step down operation
-                self.cancel_orders()
-                robot.current_step_price = new_price
-                session.commit()
-                self.place_orders()
+            # Perform step down operation
+            self.cancel_orders()
+            robot.current_step_price = new_price
+            session.commit()
+            self.place_orders()
 
-                # Inform about step
-                send_telegram_message(f'Step down!\n'
-                                      f'Strategy: {self.strategy.name}\n'
-                                      f'New price: {robot.current_step_price}')
+            # Inform about step
+            send_telegram_message(
+                f'Step down!\n'
+                f'Strategy: {self.strategy.name}\n'
+                f'New price: {robot.current_step_price}'
+            )
+
 
         except Exception as e:
             session.rollback()
@@ -355,15 +385,11 @@ def kraken_bot():
             bot = Bot(strategy.id, current_prices[strategy.pair_name])
             bot.run_robot()
 
-    except Exception as e:
-        # Print error
-        print('kraken_bot: ' + str(e))
+    except Exception as e:  # todo: specify some exact errors with except SpecialKrakenException
+        logger.exception(f'Error happened: #kraken_bot: {e}')
         # noinspection PyBroadException
         try:
-            # Send error to DB log
             Error.post('kraken_bot: ' + str(e))
-            # Send error notification
-            send_telegram_message('Error happened: kraken_bot: ' + str(e))
         except Exception as e:
             pass
 
