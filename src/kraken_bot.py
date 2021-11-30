@@ -40,7 +40,13 @@ class Bot:
             buy_volume = self.strategy.bid*multiplicator
 
             # Post sell order
-            if self.strategy.bottom <= sell_price <= self.strategy.ceiling:
+            if not self.strategy.bottom <= sell_price <= self.strategy.ceiling:
+                send_telegram_message(
+                    f'Sell price for a new order is not in a strategy corridor.\n'
+                    f'Strategy: {self.strategy.name} with [{self.strategy.bottom}, {self.strategy.ceiling}]\n'
+                    f'Sell price for a new order: {sell_price}'
+                )
+            else:
                 # Publish order
                 sell_order_result = post_order(pair=pair,
                                                type='sell',
@@ -63,7 +69,13 @@ class Bot:
                 orders.append(sell_order)
 
             # Post buy order
-            if self.strategy.bottom <= buy_price <= self.strategy.ceiling:
+            if not self.strategy.bottom <= buy_price <= self.strategy.ceiling:
+                send_telegram_message(
+                    f'Buy price for a new order is not in a strategy corridor.\n'
+                    f'Strategy: {self.strategy.name} with [{self.strategy.bottom}, {self.strategy.ceiling}]\n'
+                    f'Buy price for a new order: {buy_price}'
+                )
+            else:
                 # Publish order
                 buy_order_result = post_order(pair=pair,
                                               type='buy',
@@ -232,18 +244,25 @@ class Bot:
             new_price = robot.current_step_price * multiplicator
 
             # Check if new price lies in given range
-            if new_price <= self.strategy.ceiling:
+            if not new_price <= self.strategy.ceiling:
+                send_telegram_message(
+                    f'New price <= strategy ceiling, pass it...\n'
+                    f'Strategy: {self.strategy.name}\n'
+                    f'New price: {new_price}'
+                )
+                return
 
-                # Perform step up operation
-                self.cancel_orders()
-                robot.current_step_price = new_price
-                session.commit()
-                self.place_orders()
+            # Perform step up operation
+            self.cancel_orders()
+            robot.current_step_price = new_price
+            session.commit()
+            self.place_orders()
 
-                # Inform about step
-                send_telegram_message(f'Step up!\n'
-                                      f'Strategy: {self.strategy.name}\n'
-                                      f'New price: {robot.current_step_price}')
+            # Inform about step
+            send_telegram_message(f'Step up!\n'
+                                  f'Strategy: {self.strategy.name}\n'
+                                  f'New price: {robot.current_step_price}')
+
 
         except Exception as e:
             session.rollback()
@@ -265,18 +284,27 @@ class Bot:
             new_price = robot.current_step_price / multiplicator
 
             # Check if new price lies in given range
-            if new_price >= self.strategy.bottom:
+            if not new_price >= self.strategy.bottom:
+                send_telegram_message(
+                    f'New price >= strategy bottom, pass it...\n'
+                    f'Strategy: {self.strategy.name}\n'
+                    f'New price: {new_price}'
+                )
+                return
 
-                # Perform step down operation
-                self.cancel_orders()
-                robot.current_step_price = new_price
-                session.commit()
-                self.place_orders()
+            # Perform step down operation
+            self.cancel_orders()
+            robot.current_step_price = new_price
+            session.commit()
+            self.place_orders()
 
-                # Inform about step
-                send_telegram_message(f'Step down!\n'
-                                      f'Strategy: {self.strategy.name}\n'
-                                      f'New price: {robot.current_step_price}')
+            # Inform about step
+            send_telegram_message(
+                f'Step down!\n'
+                f'Strategy: {self.strategy.name}\n'
+                f'New price: {robot.current_step_price}'
+            )
+
 
         except Exception as e:
             session.rollback()
